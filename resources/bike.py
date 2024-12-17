@@ -2,7 +2,10 @@ import uuid
 from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from db import bikes
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+
+from db import db
+from models import BikeModel
 from schema import BikeSchema, BikeUpdateSchema
 
 blp = Blueprint("bikes", __name__, description="Operations on bikes")
@@ -12,55 +15,43 @@ blp = Blueprint("bikes", __name__, description="Operations on bikes")
 class Bike(MethodView):
     @blp.response(200, BikeSchema)
     def get(self, bike_id=None):
-        try:
-            return bikes[bike_id]
-        except KeyError:
-            abort(404, message="Bike not found")    
-
+        bike = BikeModel.query.get_or_404(bike_id)
+        return bike
+    
     def delete(self, bike_id):
-        try:
-            del bikes[bike_id]
-            return {"message": "Bike deleted"}
-        except KeyError:
-            abort(404, message="Bike not found")
+        bike = BikeModel.query.get_or_404(bike_id)
+        db.session.delete(bike)
+        db.session.commit()
+        return {"message": "Bike Deleted"}
 
     @blp.arguments(BikeUpdateSchema)
     @blp.response(200, BikeSchema)
     def put(self, bike_data, bike_id):
-
-        if bike_id not in bikes:
-            abort(
-                400,
-                message="Bad request. Bike not found"            
-            )
-
-        bikes[bike_id].update(**bike_data)
-
-        return bikes[bike_id]
+        bike = BikeModel.query.get_or_404(bike_id)
+        raise NotImplementedError("Updating a bike is not implemented")
 
 @blp.route("/bike")
 
 class BikeList(MethodView):
     @blp.response(200, BikeSchema(many=True))
     def get(self):
-     return bikes.values() #This will return the bike
+     return BikeModel.query.all()
     
     @blp.arguments(BikeSchema)
     @blp.response(201, BikeSchema)
     def post(self, bike_data):
-        
-        for bike in bikes.values():
-            if(
-                bike_data["make"] == bike["make"]
-                and bike_data["model"] == bike["model"]
-            ):
-                abort(
-                    400,
-                    message = "Duplicate Request"
-                )
 
-        bike_id = uuid.uuid4().hex
-        bike = {**bike_data, "bike_id":bike_id}
+        bike = BikeModel(**bike_data)
 
-        bikes[bike_id] = bike 
+        try:
+            db.session.add(bike)
+            db.session.commit()
+        except IntegrityError:
+            abort(
+                400,
+                message="A Bike Make/Model already exists"
+            )
+        except SQLAlchemyError:
+            abort(500, message="Error insering the bike")
+
         return bike

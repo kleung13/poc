@@ -2,7 +2,10 @@ import uuid
 from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from db import dimensions, bikes
+from sqlalchemy.exc import SQLAlchemyError
+
+from db import db
+from models import DimensionModel
 from schema import DimensionSchema, DimensionUpdateSchema
 
 blp = Blueprint("dimensions", __name__, description="Operations on dimensions")
@@ -11,57 +14,48 @@ blp = Blueprint("dimensions", __name__, description="Operations on dimensions")
 
 class dimension(MethodView):
     @blp.response(200, DimensionSchema)
-    def get(self, dimension_id=None):
-        try:
-            return dimensions[dimension_id]
-        except KeyError:
-            abort(404, message="dimension not found")    
+    def get(self, dimension_id):
+        dimension = DimensionModel.query.get_or_404(dimension_id)
+        return dimension
 
     def delete(self, dimension_id):
-        try:
-            del dimensions[dimension_id]
-            return {"message": "dimension deleted"}
-        except KeyError:
-            abort(404, message="dimension not found")
+        dimension = DimensionModel.query.get_or_404(dimension_id)
+        db.session.delete(dimension)
+        db.session.commit()
+        return {"message": "Dimension Deleted"}
 
     @blp.arguments(DimensionUpdateSchema)
     @blp.response(200, DimensionSchema)
     def put(self, dimension_data, dimension_id):
-        
-        try:
-            dimensions[dimension_id].update(**dimension_data)
-            return dimensions[dimension_id]
-        except KeyError:
-            abort(
-                404,
-                message="Bad request. Dimensions not found"            
-            )
+        dimension = DimensionModel.query.get(dimension_id)
+        if dimension:
+            dimension.stack = dimension_data["stack"]
+            dimension.reach = dimension_data["reach"]
+            dimension.size = dimension_data["size"]
+        else:
+            dimension = DimensionModel(**dimension_data, dimension_id=dimension_id)
+
+        db.session.add(dimension)
+        db.session.commit()
+
+        return dimension
 
 @blp.route("/dimension")
 
 class dimensionList(MethodView):
     @blp.response(200, DimensionSchema(many=True))
     def get(self):
-     return dimensions.values() #This will return the dimension
+     return DimensionModel.query.all()#This will return the dimension
     
     @blp.arguments(DimensionSchema)
     @blp.response(201, DimensionSchema)
     def post(self, dimension_data):
+        dimension = DimensionModel(**dimension_data)
 
-        if dimension_data["bike_id"] not in bikes:
-            abort(404, message="Bike not found")
+        try:
+            db.session.add(dimension) #Add multiple things
+            db.session.commit() #Write this to the table
+        except SQLAlchemyError:
+            abort(500, message="Error insering the dimension")
 
-        for dimension in dimensions.values():
-            if (
-                dimension_data["bike_id"] == dimension["bike_id"]
-            ):
-                abort(
-                    400,
-                    message="Duplicate Bike Dimension."
-                )
-
-        dimension_id = uuid.uuid4().hex
-        dimension = {**dimension_data, "dimension_id": dimension_id}
-
-        dimensions[dimension_id] = dimension 
         return dimension
