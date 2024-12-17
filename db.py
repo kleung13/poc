@@ -1,2 +1,4 @@
-bikes = {}
-dimensions = {}
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
