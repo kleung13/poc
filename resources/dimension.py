@@ -1,8 +1,7 @@
-import uuid
-from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError
+from flask_jwt_extended import jwt_required
 
 from db import db
 from models import DimensionModel
@@ -10,7 +9,7 @@ from schema import DimensionSchema, DimensionUpdateSchema
 
 blp = Blueprint("dimensions", __name__, description="Operations on dimensions")
 
-@blp.route("/dimension/<string:dimension_id>")
+@blp.route("/dimension/<int:dimension_id>")
 
 class dimension(MethodView):
     @blp.response(200, DimensionSchema)
@@ -47,6 +46,7 @@ class dimensionList(MethodView):
     def get(self):
      return DimensionModel.query.all()#This will return the dimension
     
+    @jwt_required()
     @blp.arguments(DimensionSchema)
     @blp.response(201, DimensionSchema)
     def post(self, dimension_data):

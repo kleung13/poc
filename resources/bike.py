@@ -1,5 +1,3 @@
-import uuid
-from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -10,7 +8,7 @@ from schema import BikeSchema, BikeUpdateSchema
 
 blp = Blueprint("bikes", __name__, description="Operations on bikes")
 
-@blp.route("/bike/<string:bike_id>")
+@blp.route("/bike/<int:bike_id>")
 
 class Bike(MethodView):
     @blp.response(200, BikeSchema)
@@ -27,8 +25,17 @@ class Bike(MethodView):
     @blp.arguments(BikeUpdateSchema)
     @blp.response(200, BikeSchema)
     def put(self, bike_data, bike_id):
-        bike = BikeModel.query.get_or_404(bike_id)
-        raise NotImplementedError("Updating a bike is not implemented")
+        bike = BikeModel.query.get(bike_id)
+        if bike:
+            bike.model = bike_data["model"]
+            bike.make = bike_data["make"]
+        else:
+            bike = BikeModel(**bike_data, bike_id=bike_id)
+
+        db.session.add(bike)
+        db.session.commit()
+
+        return bike
 
 @blp.route("/bike")
 

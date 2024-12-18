@@ -7,3 +7,4 @@ class BikeModel(db.Model):
     make = db.Column(db.String, nullable=False)
     model = db.Column(db.String, unique=True, nullable=False)
     dimensions = db.relationship("DimensionModel", back_populates="bike", lazy="dynamic", cascade="all, delete")# Check delete-orphan documentation
+    tags = db.relationship("TagModel", back_populates="bike", lazy="dynamic", cascade="all, delete") #lazy=dynamic will query into the DB to fetch the tag information

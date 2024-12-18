@@ -6,6 +6,8 @@ COPY . .
 
 RUN pip install -r requirements.txt
 
+ENV JWT_SECRET_KEY="poc"
+
 EXPOSE 5000
 
 CMD ["flask", "run", "--host", "0.0.0.0"]
