@@ -1,9 +1,13 @@
 import os
+from dotenv import load_dotenv
 
 from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from sqlalchemy.ext.declarative import declarative_base
+from google.cloud.sql.connector import Connector, IPTypes
+import sqlalchemy
 
 from db import db
 from blocklist import BLOCKLIST
@@ -13,10 +17,27 @@ from resources.dimension import blp as DimensionBlueprint
 from resources.tag import blp as TagBlueprint
 from resources.user import blp as UserBlueprint
 
+# Initialize Cloud SQL Connector
+connector = Connector()
 
-def create_app (db_url=None):
+# Function to create a database connection using the Google Cloud SQL Connector
+def getconn():
+    return connector.connect(
+        os.getenv("INSTANCE_CONNECTION_NAME"),  # Format: "project:region:instance-name"
+        "pg8000",  # Driver
+        user=os.getenv("DB_USER"),  # Database user
+        password=os.getenv("DB_PASSWORD"),  # Database password
+        db=os.getenv("DB_NAME"),  # Database name
+        ip_type=IPTypes.PUBLIC if os.getenv("USE_PRIVATE_IP", "false").lower() != "true" else IPTypes.PRIVATE,
+    )
+
+def create_app(db_url=None):
+
+    load_dotenv()
+
     app = Flask(__name__)
 
+    # App configuration
     app.config["PROPAGATE_EXCEPTIONS"] = True
     app.config["API_TITLE"] = "Bike REST API"
     app.config["API_VERSION"] = "v1"
@@ -24,22 +45,24 @@ def create_app (db_url=None):
     app.config["OPENAPI_URL_PREFIX"] = "/"
     app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")  #sqllite Connection String
+    
+    # Configure SQLAlchemy
+    if db_url:
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    else:
+        app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+pg8000://"
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    db.init_app(app) # Initializes the Flask SQLAlchemy extension giving it the flask app to connect
+
+    # Initialize extensions
+    db.init_app(app)
     migrate = Migrate(app, db)
     api = Api(app)
 
+    # JWT Configuration
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
     jwt = JWTManager(app)
 
-    # @jwt.additional_claims_loader
-    # def add_claims_to_jwt(identity):
-    #     if identity == 1:
-    #         return {"is_admin": True}
-    #     return {"is_admin": False}
-
-    ### This should be stored in a Database OR Redis Cache
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
         return jwt_payload["jti"] in BLOCKLIST
@@ -93,15 +116,10 @@ def create_app (db_url=None):
             401,
         )
 
-    # JWT configuration ends
-
-    # with app.app_context():
-    #     db.create_all()
-
+    # Register blueprints
     api.register_blueprint(BikeBlueprint)
     api.register_blueprint(DimensionBlueprint)
     api.register_blueprint(TagBlueprint)
     api.register_blueprint(UserBlueprint)
-
 
     return app
