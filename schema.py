@@ -53,3 +53,15 @@ class UserSchema(Schema):
     id = fields.Int(dump_only=True)
     username = fields.Str(required=True)
     password = fields.Str(required=True, load_only=True)
+
+class WorkoutSchema(Schema):
+    id = fields.Int(dump_only=True)
+    tss = fields.Int(dump_only=True)
+    date = fields.DateTime(dump_only=True)
+    intensity_factor = fields.Float(dump_only=True)
+    kilojoules = fields.Int(dump_only=True)
+    total_calories = fields.Float(dump_only=True)
+    carbs = fields.Float(dump_only=True)
+    protein = fields.Float(dump_only=True)
+    fat = fields.Float(dump_only=True)
+    api_key = fields.Str(required=True)

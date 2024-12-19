@@ -8,3 +8,4 @@ passlib
 flask-migrate    
 cloud-sql-python-connector[pymysql]
 pg8000
+openai
