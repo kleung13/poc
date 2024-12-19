@@ -6,6 +6,8 @@ class DimensionModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     stack = db.Column(db.Integer, nullable=False)
     reach = db.Column(db.Integer, nullable=False)
+    seat_height = db.Column(db.Integer)
+    crank_length = db.Column(db.Integer)
     size = db.Column(db.String, nullable=False)
     bike_id = db.Column(db.Integer, db.ForeignKey("bikes.id"), unique=False, nullable=False)
     bike = db.relationship("BikeModel", back_populates="dimensions")

@@ -5,6 +5,8 @@ class PlainDimensionSchema(Schema):
     stack = fields.Int(required=True)
     reach = fields.Int(required=True)
     size = fields.Str(required=True)
+    seat_height = fields.Str()
+    crank_length = fields.Str()
 
 class PlainBikeSchema(Schema):
     id = fields.Int(dump_only=True)

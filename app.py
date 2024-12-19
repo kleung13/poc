@@ -3,6 +3,7 @@ import os
 from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 
 from db import db
 from blocklist import BLOCKLIST
@@ -26,7 +27,7 @@ def create_app (db_url=None):
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")  #sqllite Connection String
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app) # Initializes the Flask SQLAlchemy extension giving it the flask app to connect
-
+    migrate = Migrate(app, db)
     api = Api(app)
 
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
@@ -94,8 +95,8 @@ def create_app (db_url=None):
 
     # JWT configuration ends
 
-    with app.app_context():
-        db.create_all()
+    # with app.app_context():
+    #     db.create_all()
 
     api.register_blueprint(BikeBlueprint)
     api.register_blueprint(DimensionBlueprint)
