@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.hash import pbkdf2_sha256
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt
 
-from blocklist import BLOCKLIST
+# from blocklist import BLOCKLIST
 
 from db import db
 from models import UserModel
@@ -61,7 +61,7 @@ class UserLogout(MethodView):
     @jwt_required()
     def post(self):
         jti = get_jwt()["jti"]
-        BLOCKLIST.add(jti)
+        # BLOCKLIST.add(jti)
 
         return {"message": "User logged out successfully."}
 
@@ -85,3 +85,11 @@ class User(MethodView):
             abort(500, message=f"An error occurred while removing the tag: {str(e)}")
         
         return {"message": "User deleted successfuly"}
+
+@blp.route("/user")
+class User(MethodView):
+    @blp.response(200, UserSchema(many=True))
+    def get(self):
+        user = UserModel.query.all()
+
+        return user

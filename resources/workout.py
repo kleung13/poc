@@ -44,28 +44,47 @@ class Workout(MethodView):
         for workout in workouts:
             start_date_str = workout['start_date_local']
             start_date = datetime.fromisoformat(start_date_str)  # Convert to datetime object
-            description = workout['workout_doc']['description']
-            tss, intensity_factor, kilojoules = calendar.parse_description(description)
-            food = Food(30, "male", 60, 178, kilojoules)
-            total = food.daily_calories()
-            macros = Macros(total, 40, 40, 20)
-            carbs, protein, fat = macros.calculate_macros()            
-            try:
-                workout_data = WorkoutModel(
-                        date=start_date,
-                        tss=tss,
-                        intensity_factor=intensity_factor,
-                        kilojoules=kilojoules,
-                        total_calories=total,
-                        carbs=carbs,
-                        protein=protein,
-                        fat=fat                                
-                )                
-                db.session.add(workout_data)
-                db.session.commit()
-            except SQLAlchemyError as e:
-                db.session.rollback()
-                print(str(e))  
-                abort(500, message=f"An error occurred while removing the tag: {str(e)}")
+            type = workout['type']
+            if type == "Ride":
+                description = workout['workout_doc']['description']
+                tss, intensity_factor, kilojoules = calendar.parse_description(description)
+                if kilojoules is not None:
+                    food = Food(30, "male", 60, 178, kilojoules) # This should be data input
+                # else:
+                #     food = Food(30, "male", 60, 178, 0)
+                total = food.daily_calories()
+                macros = Macros(total, 40, 40, 20) #This should be data inputted
+                carbs, protein, fat = macros.calculate_macros()            
+                try:
+                    workout_data = WorkoutModel(
+                            date=start_date,
+                            tss=tss,
+                            type=type,
+                            intensity_factor=intensity_factor,
+                            kilojoules=kilojoules,
+                            total_calories=total,
+                            carbs=carbs,
+                            protein=protein,
+                            fat=fat                                
+                    )                
+                    db.session.add(workout_data)
+                    db.session.commit()
+                except SQLAlchemyError as e:
+                    db.session.rollback()
+                    print(str(e))  
+                    abort(500, message=f"An error occurred while removing the tag: {str(e)}")
 
         return {"message": "Workouts imported successfully"}
+
+    def delete(self):
+
+        workouts = WorkoutModel.query.all()
+        # count = len(workouts)
+        if not workouts:
+            return {"message": "No workouts found to delete."}, 404
+
+        for workout in workouts:
+                db.session.delete(workout)
+
+        db.session.commit()
+        return {"message": "Workout Deleted"}

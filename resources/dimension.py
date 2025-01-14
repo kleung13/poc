@@ -44,17 +44,17 @@ class dimension(MethodView):
 class dimensionList(MethodView):
     @blp.response(200, DimensionSchema(many=True))
     def get(self):
-     return DimensionModel.query.all()#This will return the dimension
+     return DimensionModel.query.all()
     
-    @jwt_required()
+    # @jwt_required()
     @blp.arguments(DimensionSchema)
     @blp.response(201, DimensionSchema)
     def post(self, dimension_data):
         dimension = DimensionModel(**dimension_data)
 
         try:
-            db.session.add(dimension) #Add multiple things
-            db.session.commit() #Write this to the table
+            db.session.add(dimension)
+            db.session.commit()
         except SQLAlchemyError:
             abort(500, message="Error insering the dimension")
 

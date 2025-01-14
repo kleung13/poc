@@ -6,6 +6,7 @@ class WorkoutModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime)
     tss = db.Column(db.Integer)
+    type = db.Column(db.String)
     intensity_factor = db.Column(db.Float)
     kilojoules = db.Column(db.Integer)
     total_calories = db.Column(db.Float)
